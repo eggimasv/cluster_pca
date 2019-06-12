@@ -6,6 +6,59 @@ import numpy as np
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+
+def cluster_pca(x_data, y_data):
+    """
+    2 CPA clustering
+    #https://jakevdp.github.io/PythonDataScienceHandbook/05.11-k-means.html
+    """
+
+    # Cluster principal components
+    data_tuples = [[i, j] for i, j in zip(x_data, y_data)]
+    data = np.array(data_tuples)
+    
+    # Add cluster number (insert last column)
+    #generic_data_id = range(len(x_data))
+
+    kmeans = KMeans(n_clusters=3, random_state=0).fit(data)
+
+    # Get info to which cluster data belongs to
+    y_kmeans = kmeans.predict(data)
+    y_kmeans = y_kmeans.tolist() # same as kmeans.labels_
+
+
+    # Plot clusters
+    plt.scatter(
+        x_data,
+        y_data,
+        c=y_kmeans,
+        s=50,
+        cmap='viridis')
+    
+    cluster_labels = kmeans.labels_ # same as y_kmeans
+
+    # Add cluster info to data
+    data_with_cluster_nr = np.insert(data, 2, cluster_labels, axis=1)
+
+    for x, y, cluster_label in data_with_cluster_nr:
+        plt.text(
+            x+0.3,
+            y+0.3,
+            cluster_label,
+            fontsize=9)
+
+    print(" ")
+    print("Labels")
+    print(kmeans.labels_)
+
+    print(" ")
+    print("Cluster centers")
+    print(kmeans.cluster_centers_)
+
+    plt.show()
+    print("finished k-mean")
+    return
 
 # Read data
 df = pd.read_csv(
@@ -76,6 +129,12 @@ print(Y_sklearn)
 plt.scatter(x=Y_sklearn[:, 0], y=Y_sklearn[:, 1])
 plt.show()
 
+# Cluster the results from PCA with k-means
+cluster_pca(
+    x_data=Y_sklearn[:, 0],
+    y_data=Y_sklearn[:, 1])
+
+# Plot original classification
 data = []
 
 for name, col in zip(('Iris-setosa', 'Iris-versicolor', 'Iris-virginica'), colors.values()):
@@ -84,7 +143,6 @@ for name, col in zip(('Iris-setosa', 'Iris-versicolor', 'Iris-virginica'), color
         'y': Y_sklearn[y==name, 1],
         'name': name,
         'color': col}
-
 
     data.append(entry)
 
@@ -101,11 +159,7 @@ for i in data:
 plt.show()
 
 
-def cluster_pca():
-    
-    # Cluster principal components
 
-    return
 
 
 raise Exception("Finished short")
