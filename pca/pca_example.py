@@ -5,10 +5,69 @@ import pandas as pd
 import numpy as np
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA as sklearnPCA
 
-def cluster_pca(x_data, y_data):
+def cluster_pca_3d(x_data, y_data, z_data):
+    """
+    2 CPA clustering
+    #https://jakevdp.github.io/PythonDataScienceHandbook/05.11-k-means.html
+    """
+
+    # Cluster principal components
+    data_tuples = [[i, j, k] for i, j, k in zip(x_data, y_data, z_data)]
+    data = np.array(data_tuples)
+    
+    # Add cluster number (insert last column)
+    #generic_data_id = range(len(x_data))
+
+    kmeans = KMeans(n_clusters=3, random_state=0).fit(data)
+
+    # Get info to which cluster data belongs to
+    y_kmeans = kmeans.predict(data)
+    y_kmeans = y_kmeans.tolist() # same as kmeans.labels_
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot clusters
+    ax.scatter(
+        xs=x_data,
+        ys=y_data,
+        zs=z_data,
+        c=y_kmeans,
+        s=50,
+        cmap='viridis')
+    
+    cluster_labels = kmeans.labels_ # same as y_kmeans
+
+    # Add cluster info to data
+    data_with_cluster_nr = np.insert(data, 3, cluster_labels, axis=1)
+
+    for x, y, z, cluster_label in data_with_cluster_nr:
+        ax.text(
+            x+0.3,
+            y+0.3,
+            z+0.3,
+            cluster_label,
+            fontsize=9)
+
+    print(" ")
+    print("Labels")
+    print(kmeans.labels_)
+
+    print(" ")
+    print("Cluster centers")
+    print(kmeans.cluster_centers_)
+
+    plt.show()
+    print("finished k-mean")
+    return
+
+def cluster_pca_2d(x_data, y_data):
     """
     2 CPA clustering
     #https://jakevdp.github.io/PythonDataScienceHandbook/05.11-k-means.html
@@ -76,9 +135,9 @@ print(df.tail())
 X = df.iloc[:,0:4].values
 y = df.iloc[:,4].values
 
-print("---")
-print(X)
-print("---")
+#print("---")
+#print(X)
+#print("---")
 
 # -----------plotting histograms
 colors = {'Iris-setosa': '#0D76BF', 
@@ -118,46 +177,93 @@ print(X_std)
 
 
 # ---------------------- Short version from package
+nr_of_pca_dimension = 3
 
-from sklearn.decomposition import PCA as sklearnPCA
-sklearn_pca = sklearnPCA(n_components=2)
-Y_sklearn = sklearn_pca.fit_transform(X_std)
-print(".................")
-print(Y_sklearn)
+if nr_of_pca_dimension == 2:
+    sklearn_pca = sklearnPCA(n_components=2)
+    Y_sklearn = sklearn_pca.fit_transform(X_std)
+    print(".................")
+    print(Y_sklearn)
 
-# plot Princial components
-plt.scatter(x=Y_sklearn[:, 0], y=Y_sklearn[:, 1])
-plt.show()
+    # plot Princial components
+    plt.scatter(x=Y_sklearn[:, 0], y=Y_sklearn[:, 1])
+    plt.show()
 
-# Cluster the results from PCA with k-means
-cluster_pca(
-    x_data=Y_sklearn[:, 0],
-    y_data=Y_sklearn[:, 1])
+    # Cluster the results from PCA with k-means
+    cluster_pca_2d(
+        x_data=Y_sklearn[:, 0],
+        y_data=Y_sklearn[:, 1])
+    #TODO:
+    # Implement how much is correctly classified with clustering?
+    # Training datset?
+    
+    # Plot original classification
+    data = []
 
-# Plot original classification
-data = []
+    for name, col in zip(('Iris-setosa', 'Iris-versicolor', 'Iris-virginica'), colors.values()):
+        entry = {
+            'x': Y_sklearn[y==name, 0],
+            'y': Y_sklearn[y==name, 1],
+            'name': name,
+            'color': col}
 
-for name, col in zip(('Iris-setosa', 'Iris-versicolor', 'Iris-virginica'), colors.values()):
-    entry = {
-        'x': Y_sklearn[y==name, 0],
-        'y': Y_sklearn[y==name, 1],
-        'name': name,
-        'color': col}
+        data.append(entry)
 
-    data.append(entry)
+    fig, ax = plt.subplots()
 
-fig, ax = plt.subplots()
+    for i in data:
+        print("color: " + str(i['color']))
+        ax.scatter(
+            x=i['x'],
+            y=i['y'],
+            c=i['color'],
+            alpha=0.5)
 
-for i in data:
-    print("color: " + str(i['color']))
-    ax.scatter(
-        x=i['x'],
-        y=i['y'],
-        c=i['color'],
-        alpha=0.5)
+    plt.show()
 
-plt.show()
+if nr_of_pca_dimension == 3:
+    #https://matplotlib.org/3.1.0/gallery/mplot3d/scatter3d.html
+    sklearn_pca = sklearnPCA(n_components=3)
+    Y_sklearn = sklearn_pca.fit_transform(X_std)
+    print(".................")
+    print(Y_sklearn)
 
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # plot Princial components
+    ax.scatter(xs=Y_sklearn[:, 0], ys=Y_sklearn[:, 1], zs=Y_sklearn[:, 1],)
+    plt.show()
+
+    # Cluster the results from PCA with k-means
+    cluster_pca_3d(
+        x_data=Y_sklearn[:, 0],
+        y_data=Y_sklearn[:, 1],
+        z_data=Y_sklearn[:, 2])
+
+    # Plot original classification
+    data = []
+
+    for name, col in zip(('Iris-setosa', 'Iris-versicolor', 'Iris-virginica'), colors.values()):
+        entry = {
+            'x': Y_sklearn[y==name, 0],
+            'y': Y_sklearn[y==name, 1],
+            'name': name,
+            'color': col}
+
+        data.append(entry)
+
+    fig, ax = plt.subplots()
+
+    for i in data:
+        print("color: " + str(i['color']))
+        ax.scatter(
+            x=i['x'],
+            y=i['y'],
+            c=i['color'],
+            alpha=0.5)
+
+    plt.show()
 
 
 
