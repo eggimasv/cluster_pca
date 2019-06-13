@@ -1,0 +1,8 @@
+pip install numpy
+
+conda install geopandas, 
+
+gdal
+shapely
+osmnx
+geopandas

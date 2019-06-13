@@ -119,6 +119,92 @@ def cluster_pca_2d(x_data, y_data):
     print("finished k-mean")
     return
 
+def show_pca_eigenvector_values(X_std):
+    # Calculate covariance matrix
+    mean_vec = np.mean(X_std, axis=0)
+    cov_mat = (X_std - mean_vec).T.dot((X_std - mean_vec)) / (X_std.shape[0]-1)
+    print('Covariance matrix \n%s' %cov_mat)
+
+    #Short
+    print('NumPy covariance matrix: \n%s' %np.cov(X_std.T))
+    cov_mat = np.cov(X_std.T)
+    print('Covariance matrix \n%s' %cov_mat)
+
+
+    # we perform an eigendecomposition on the covariance matrix:
+    cov_mat = np.cov(X_std.T)
+    eig_vals, eig_vecs = np.linalg.eig(cov_mat)
+
+    print('Eigenvectors \n%s' %eig_vecs)
+    print('\nEigenvalues \n%s' %eig_vals)
+
+
+    #Singular Vector Decomposition
+    u,s,v = np.linalg.svd(X_std.T)
+
+    for ev in eig_vecs:
+        np.testing.assert_array_almost_equal(1.0, np.linalg.norm(ev))
+    print('Everything ok!')
+
+    #In order to decide which eigenvector(s) can be dropped without
+    #losing too much information for the construction of lower-dimensional
+    #subspace, we need to inspect the corresponding eigenvalues: The eigenvectors
+    #with the lowest eigenvalues bear the least information about the distribution
+    #of the data; those are the ones can be dropped.
+    #In order to do so, the common approach is to rank the eigenvalues from highest
+    #to lowest in order choose the top k eigenvectors.
+
+    # Make a list of (eigenvalue, eigenvector) tuples
+    eig_pairs = [(np.abs(eig_vals[i]), eig_vecs[:,i]) for i in range(len(eig_vals))]
+
+    # Sort the (eigenvalue, eigenvector) tuples from high to low
+    eig_pairs.sort()
+    eig_pairs.reverse()
+
+    # Visually confirm that the list is correctly sorted by decreasing eigenvalues
+    print('Eigenvalues in descending order:')
+    for i in eig_pairs:
+        print(i[0])
+
+    # Kaiser (average root criteria
+    # This criterion states that one should retain
+    # the principal components with eigen-values larger
+    # than one for normalised data.
+    nr_eigenvalues_lager_1 = 0
+    for i in eig_pairs:
+        if i[0] > 1.0:
+            nr_eigenvalues_lager_1 += 1
+
+    print("Number of Iegenvalues > 1 (Kaiser criterion): {}".format(nr_eigenvalues_lager_1))
+
+
+    #After sorting the eigenpairs, the next question is "how many principal components are we
+    #going to choose for our new feature subspace?" A useful measure is the so-called "explained
+    #variance," which can be calculated from the eigenvalues. The explained variance tells us how
+    #much information (variance) can be attributed to each of the principal components.
+
+
+    tot = sum(eig_vals)
+    var_exp = [(i / tot)*100 for i in sorted(eig_vals, reverse=True)]
+    cum_var_exp = np.cumsum(var_exp)
+
+    fig, ax = plt.subplots()
+
+    x_values = range(1,5)
+
+    plt.bar(x_values, var_exp)
+
+    plt.scatter(
+        x=x_values,
+        y=cum_var_exp)
+    ax.plot(x_values,cum_var_exp)
+
+    plt.title('Explained variance by different principal components')
+    plt.show()
+
+
+
+
 # Read data
 df = pd.read_csv(
     filepath_or_buffer='https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data', 
@@ -174,10 +260,12 @@ plt.show()
 X_std = StandardScaler().fit_transform(X)
 print(X_std)
 
+# More detail on selection of number of Princial components
+# show_pca_eigenvector_values(X_std)
 
 
 # ---------------------- Short version from package
-nr_of_pca_dimension = 3
+nr_of_pca_dimension = 2
 
 if nr_of_pca_dimension == 2:
     sklearn_pca = sklearnPCA(n_components=2)
@@ -223,6 +311,7 @@ if nr_of_pca_dimension == 2:
 
 if nr_of_pca_dimension == 3:
     #https://matplotlib.org/3.1.0/gallery/mplot3d/scatter3d.html
+    # https://www.kaggle.com/timi01/k-means-clustering-and-3d-plotting
     sklearn_pca = sklearnPCA(n_components=3)
     Y_sklearn = sklearn_pca.fit_transform(X_std)
     print(".................")
@@ -264,9 +353,6 @@ if nr_of_pca_dimension == 3:
             alpha=0.5)
 
     plt.show()
-
-
-
 
 raise Exception("Finished short")
 
